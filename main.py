@@ -1,11 +1,14 @@
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, send_file, redirect
 from scraper import scrap_berlin_job_descriptions, scrap_web3_job_descriptions
 from utils import init_cache
+from file import save_to_file
 import asyncio
+import os
 
 app = Flask(__name__)
 
 init_cache()
+db = {}  # 검색된 데이터를 저장할 캐시
 
 
 @app.route("/")
@@ -22,6 +25,9 @@ def search():
 @app.route("/api/search")
 async def api_search():
     keyword = request.args.get("keyword")
+    if not keyword:
+        return jsonify({"results": []})
+
     print(f"Searching for keyword: {keyword}")
 
     loop = asyncio.get_event_loop()
@@ -41,14 +47,9 @@ async def api_search():
             "link": job.link
         })
 
+    db[keyword] = formatted_results  # 캐시에 저장
     print(f"Found {len(formatted_results)} results")
     return jsonify({"results": formatted_results})
-
-
-@app.route("/export")
-def export():
-    # CSV 내보내기 기능 구현 (향후 추가 예정)
-    pass
 
 
 @app.route("/test_scraper")
@@ -62,6 +63,16 @@ def test_scraper():
         "berlin_sample": str(berlin_results[:1]),
         "web3_sample": str(web3_results[:1])
     })
+
+
+@app.route("/export")
+def export():
+    keyword = request.args.get("keyword")
+    if not keyword or keyword not in db:
+        return redirect("/")
+
+    save_to_file(keyword, db[keyword])  # 파일 저장
+    return send_file(f"{keyword}.csv", as_attachment=True)  # CSV 파일 다운로드
 
 
 if __name__ == "__main__":

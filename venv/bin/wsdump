@@ -1,4 +1,4 @@
-#!/Users/genesisblock/Desktop/job_scrapper_base/venv/bin/python3
+#!/Users/genesisblock/Desktop/job_dev_v2/venv/bin/python3.11
 # -*- coding: utf-8 -*-
 import re
 import sys

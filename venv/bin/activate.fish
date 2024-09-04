@@ -33,7 +33,7 @@ end
 # Unset irrelevant variables.
 deactivate nondestructive
 
-set -gx VIRTUAL_ENV "/Users/genesisblock/Desktop/job_scrapper_base/venv"
+set -gx VIRTUAL_ENV "/Users/genesisblock/Desktop/job_dev_v2/venv"
 
 set -gx _OLD_VIRTUAL_PATH $PATH
 set -gx PATH "$VIRTUAL_ENV/bin" $PATH
