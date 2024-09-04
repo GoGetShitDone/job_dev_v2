@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Job Dev Search</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+
+<body>
+    <canvas id="matrix"></canvas>
+    <div class="container">
+        <h1>Job Dev Results for "{{keyword}}"</h1>
+        <a class="export-link" target="_blank" href="/export?keyword={{keyword}}">Extract Data (CSV)</a>
+        <table>
+            <thead>
+                <tr>
+                    <th>Target</th>
+                    <th>Company</th>
+                    <th>Salary</th>
+                    <th>Skills</th>
+                    <th>Source</th>
+                    <th>Link</th>
+                </tr>
+            </thead>
+            <tbody id="results-body">
+                <!-- Results will be populated here by JavaScript -->
+            </tbody>
+        </table>
+    </div>
+    <script src="{{ url_for('static', filename='js/matrix.js') }}"></script>
+    <script>
+        const resultsBody = document.getElementById('results-body');
+        resultsBody.innerHTML = '<tr><td colspan="6">Searching for jobs...</td></tr>';
+
+        console.log("Fetching results for keyword: {{keyword}}");
+        fetch(`/api/search?keyword={{keyword}}`)
+            .then(response => {
+                console.log("Response received:", response);
+                return response.json();
+            })
+            .then(data => {
+                console.log("Data received:", data);
+                resultsBody.innerHTML = '';
+                if (data.results && data.results.length > 0) {
+                    data.results.forEach(job => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${job.position || 'N/A'}</td>
+                            <td>${job.company || 'N/A'}</td>
+                            <td>${job.salary || 'N/A'}</td>
+                            <td>${job.skills ? job.skills.join(', ') : 'N/A'}</td>
+                            <td>${job.source || 'N/A'}</td>
+                            <td><a href="${job.link}" target="_blank">Link &rarr;</a></td>
+                        `;
+                        resultsBody.appendChild(row);
+                    });
+                } else {
+                    resultsBody.innerHTML = '<tr><td colspan="6">No results found.</td></tr>';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                resultsBody.innerHTML = '<tr><td colspan="6">Error loading results. Please try again.</td></tr>';
+            });
+    </script>
+</body>
+
+</html>

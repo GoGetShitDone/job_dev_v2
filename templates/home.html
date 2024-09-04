@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Job Dev</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+
+<body>
+    <canvas id="matrix"></canvas>
+    <div class="home_container">
+        <pre>
+ _____           __              ____                       
+/\___ \         /\ \            /\  _  \                     
+\/__/\ \    ___ \ \ \____       \ \ \/\ \    ___    __  __  
+   _  \ \  / __ \\ \  __ \       \ \ \ \ \  / __ \ /\ \/\ \ 
+  /\ \_\ \/\ \_\ \\ \ \_\ \       \ \ \_\ \/\  _// \ \ \_/ |
+  \ \____/\ \____/ \ \_,__/        \ \____/\ \____\ \ \___/ 
+   \/___/  \/___/   \/___/          \/___/  \/____/  \/__/  
+        </pre>
+        <form action="/search" onsubmit="showLoading()">
+            <input type="text" name="keyword" placeholder="Enter target job..." />
+            <button>Infiltrate</button>
+        </form>
+    </div>
+    <div id="loading">
+        <div class="loader"></div>
+        <p>Scraping in progress...</p>
+    </div>
+    <script src="{{ url_for('static', filename='js/matrix.js') }}" defer></script>
+    <script>
+        function showLoading() {
+            document.querySelector('.container').style.display = 'none';
+            document.getElementById('loading').style.display = 'block';
+        }
+    </script>
+</body>
+
+</html>
