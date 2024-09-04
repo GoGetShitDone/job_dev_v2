@@ -5,65 +5,231 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Job Dev Search</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            margin: 30;
+            padding: 0;
+            background-color: #000000;
+            color: #00ff00;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1200px;
+            width: 100%;
+            background-color: rgba(0, 0, 0, 0.85);
+            padding: 20px;
+            border: 1px solid #00ff00;
+            box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+            position: relative;
+            z-index: 2;
+            border-radius: 10px;
+            overflow-x: auto;
+            display: none;
+        }
+
+        h1 {
+            color: #00ff00;
+            font-size: 20px;
+            margin-bottom: 20px;
+        }
+
+        .export-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: #00ff00;
+            text-decoration: none;
+        }
+
+        .export-link:hover {
+            text-decoration: underline;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: auto;
+        }
+
+        th,
+        td {
+            text-align: left;
+            padding: 12px;
+            border-bottom: 1px solid #00ff00;
+            min-width: 150px;
+        }
+
+        th {
+            background-color: rgba(0, 34, 0, 0.5);
+            color: #00ff00;
+        }
+
+        td a {
+            color: #00ff00;
+            text-decoration: none;
+        }
+
+        td a:hover {
+            text-decoration: underline;
+        }
+
+        #matrix {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        /* 로딩 애니메이션 */
+        #loading {
+            display: block;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            font-size: 24px;
+            color: #00ff00;
+            z-index: 3;
+        }
+
+        .loader {
+            border: 4px solid rgba(0, 255, 0, 0.3);
+            border-radius: 50%;
+            border-top: 4px solid #00ff00;
+            width: 40px;
+            height: 40px;
+            animation: spin 2s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
 </head>
 
 <body>
     <canvas id="matrix"></canvas>
+    <div id="loading">
+        <div class="loader"></div>
+        <p>Loading job data...</p>
+    </div>
     <div class="container">
-        <h1>Job Dev Results for "{{keyword}}"</h1>
-        <a class="export-link" target="_blank" href="/export?keyword={{keyword}}">Extract Data (CSV)</a>
+        <h1>Job Dev Results for "{{ keyword }}"</h1>
+        <a class="export-link" target="_blank"></a>
         <table>
             <thead>
                 <tr>
                     <th>Target</th>
                     <th>Company</th>
-                    <th>Salary</th>
                     <th>Skills</th>
                     <th>Source</th>
                     <th>Link</th>
                 </tr>
             </thead>
             <tbody id="results-body">
-                <!-- Results will be populated here by JavaScript -->
+                <!-- 검색 결과가 여기에 추가될 예정 -->
             </tbody>
         </table>
     </div>
-    <script src="{{ url_for('static', filename='js/matrix.js') }}"></script>
-    <script>
-        const resultsBody = document.getElementById('results-body');
-        resultsBody.innerHTML = '<tr><td colspan="6">Searching for jobs...</td></tr>';
 
-        console.log("Fetching results for keyword: {{keyword}}");
-        fetch(`/api/search?keyword={{keyword}}`)
-            .then(response => {
-                console.log("Response received:", response);
-                return response.json();
-            })
-            .then(data => {
-                console.log("Data received:", data);
-                resultsBody.innerHTML = '';
-                if (data.results && data.results.length > 0) {
-                    data.results.forEach(job => {
-                        const row = document.createElement('tr');
-                        row.innerHTML = `
-                            <td>${job.position || 'N/A'}</td>
-                            <td>${job.company || 'N/A'}</td>
-                            <td>${job.salary || 'N/A'}</td>
-                            <td>${job.skills ? job.skills.join(', ') : 'N/A'}</td>
-                            <td>${job.source || 'N/A'}</td>
-                            <td><a href="${job.link}" target="_blank">Link &rarr;</a></td>
-                        `;
-                        resultsBody.appendChild(row);
-                    });
-                } else {
-                    resultsBody.innerHTML = '<tr><td colspan="6">No results found.</td></tr>';
+    <script>
+        const canvas = document.getElementById('matrix');
+        const ctx = canvas.getContext('2d');
+
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        const katakana = 'アァカサタナハマヤャラワガザダバパイィキシチニヒミリヰギジヂビピウゥクスツヌフムユュルグズブヅプエェケセテネヘメレヱゲゼデベペオォコソトノホモヨョロヲゴゾドボポヴッン';
+        const latin = 'ABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        const nums = '01234567890123456789012345678901234567890123456789';
+        const greek = 'αβγδεζηθικλμνξοπρστυφχψωαβγδεζηθικλμνξοπρστυφχψω';
+        const korean = 'ㄱㄴㄷㄹㅁㅂㅅㅇㅈㅊㅋㅌㅍㅎㅏㅑㅓㅕㅗㅛㅜㅠㅡㅣㄱㄴㄷㄹㅁㅂㅅㅇㅈㅊㅋㅌㅍㅎㅏㅑㅓㅕㅗㅛㅜㅠㅡㅣ';
+        const special = '!@#$%^&*()_+-=[]{}|;:,.<>?!@#$%^&*()_+-=[]{}|;:,.<>?';
+
+        const alphabet = latin + nums + greek + korean + special + katakana;
+
+        const fontSize = 16;
+        const columns = canvas.width / fontSize;
+
+        const rainDrops = [];
+
+        for (let x = 0; x < columns; x++) {
+            rainDrops[x] = 1;
+        }
+
+        const draw = () => {
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.fillStyle = '#0F0';
+            ctx.font = fontSize + 'px monospace';
+
+            for (let i = 0; i < rainDrops.length; i++) {
+                const text = alphabet.charAt(Math.floor(Math.random() * alphabet.length));
+                ctx.fillText(text, i * fontSize, rainDrops[i] * fontSize);
+
+                if (rainDrops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+                    rainDrops[i] = 0;
                 }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                resultsBody.innerHTML = '<tr><td colspan="6">Error loading results. Please try again.</td></tr>';
-            });
+                rainDrops[i]++;
+            }
+        };
+
+        setInterval(draw, 30);
+
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        });
+
+        // 페이지 로딩 시 데이터를 가져와서 결과 화면에 표시
+        window.onload = function () {
+            fetch(`/api/search?keyword={{ keyword }}`)
+                .then(response => response.json())
+                .then(data => {
+                    const resultsBody = document.getElementById('results-body');
+                    if (data.results && data.results.length > 0) {
+                        data.results.forEach(job => {
+                            const row = document.createElement('tr');
+                            row.innerHTML = `
+                                <td>${job.position}</td>
+                                <td>${job.company}</td>
+                                <td>${job.skills.join(', ')}</td>
+                                <td>${job.source}</td>
+                                <td><a href="${job.link}" target="_blank">Link &rarr;</a></td>
+                            `;
+                            resultsBody.appendChild(row);
+                        });
+                    } else {
+                        resultsBody.innerHTML = '<tr><td colspan="6">No results found.</td></tr>';
+                    }
+
+                    document.getElementById('loading').style.display = 'none';
+                    document.querySelector('.container').style.display = 'block';
+                })
+                .catch(error => {
+                    console.error('Error fetching data:', error);
+                    const resultsBody = document.getElementById('results-body');
+                    resultsBody.innerHTML = '<tr><td colspan="6">Error loading results. Please try again.</td></tr>';
+                    document.getElementById('loading').style.display = 'none';
+                    document.querySelector('.container').style.display = 'block';
+                });
+        };
     </script>
 </body>
 
